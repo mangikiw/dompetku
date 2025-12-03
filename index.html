@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sistem Keuangan V13</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Marked.js -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- HTML2Canvas -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#0B6EF6',
+                        accent: '#00C48C',
+                        dark: '#0F1724',
+                        mid: '#1F2937',
+                        bg: '#F8FAFC',
+                        magic: '#7C3AED',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F1F5F9; color: #0F1724; overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+        #app-container { max-width: 480px; margin: 0 auto; background: #fff; height: 100vh; position: relative; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+        
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .btn-press { transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-press:active { transform: scale(0.92); }
+
+        /* Modal Transitions */
+        .modal-enter { opacity: 0; pointer-events: none; }
+        .modal-enter .modal-content { transform: translateY(100%); }
+        .modal-active { opacity: 1; pointer-events: auto; }
+        .modal-active .modal-content { transform: translateY(0); }
+        .transition-modal { transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        .dashboard-fixed { flex-shrink: 0; } 
+        .dashboard-scroll { flex-grow: 1; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    
+    <!-- HEADER -->
+    <header class="h-16 flex-none flex items-center justify-between px-4 bg-white border-b border-gray-100 z-30">
+        <button class="p-2 btn-press" onclick="toggleDrawer(true)">
+            <i class="ph ph-list text-2xl"></i>
+        </button>
+        <h1 id="header-title" class="font-bold text-lg">Dashboard</h1>
+        <button class="p-2 btn-press group relative" onclick="openAIModal()">
+            <div class="absolute inset-0 bg-magic/10 rounded-full scale-0 group-hover:scale-100 transition-transform"></div>
+            <i class="ph ph-sparkle text-2xl text-magic"></i>
+        </button>
+    </header>
+
+    <!-- DRAWER -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/50 z-[60] hidden transition-opacity opacity-0" onclick="toggleDrawer(false)"></div>
+    <div id="drawer-menu" class="fixed top-0 bottom-0 left-0 w-64 bg-white z-[61] transform -translate-x-full transition-transform duration-300 p-6 flex flex-col shadow-2xl">
+        <div class="flex items-center gap-3 mb-8">
+            <div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold text-xl">U</div>
+            <div>
+                <p class="font-bold">User V13</p>
+                <p class="text-xs text-gray-500">Full Text Report</p>
+            </div>
+        </div>
+        <button onclick="resetData()" class="w-full flex items-center gap-3 p-3 hover:bg-red-50 text-red-600 rounded-lg text-left mt-auto">
+            <i class="ph ph-trash text-xl"></i> Reset Data
+        </button>
+    </div>
+
+    <!-- MAIN VIEW AREA -->
+    <main id="main-view" class="flex-1 bg-gray-50 relative overflow-hidden flex flex-col">
+        <!-- Content injected by JS -->
+    </main>
+
+    <!-- FAB -->
+    <button onclick="openIncomeModal()" class="fixed bottom-[25px] right-1/2 translate-x-1/2 z-50 bg-primary text-white w-16 h-16 rounded-full shadow-xl flex items-center justify-center btn-press border-[6px] border-white hover:bg-blue-600 shadow-blue-500/30">
+        <i class="ph ph-plus text-3xl font-bold"></i>
+    </button>
+
+    <!-- BOTTOM NAV -->
+    <footer class="h-[75px] flex-none bg-white border-t border-gray-100 z-40 flex justify-between items-center px-2 text-[10px] font-medium text-gray-400 pb-2">
+        <button onclick="navigateTo('dashboard')" class="flex flex-col items-center gap-1 w-1/5 p-2 btn-press nav-btn" id="nav-dashboard">
+            <i class="ph ph-house text-2xl"></i> Home
+        </button>
+        <button onclick="navigateTo('banks')" class="flex flex-col items-center gap-1 w-1/5 p-2 btn-press nav-btn" id="nav-banks">
+            <i class="ph ph-bank text-2xl"></i> Bank
+        </button>
+        <div class="w-1/5 h-full pointer-events-none"></div>
+        <button onclick="navigateTo('riwayat')" class="flex flex-col items-center gap-1 w-1/5 p-2 btn-press nav-btn" id="nav-riwayat">
+            <i class="ph ph-clock-counter-clockwise text-2xl"></i> Riwayat
+        </button>
+        <button onclick="navigateTo('dompet')" class="flex flex-col items-center gap-1 w-1/5 p-2 btn-press nav-btn" id="nav-dompet">
+            <i class="ph ph-wallet text-2xl"></i> Dompet
+        </button>
+    </footer>
+
+    <!-- === MODALS === -->
+
+    <!-- 1. INCOME -->
+    <div id="modal-income" class="fixed inset-0 z-[70] modal-enter transition-modal flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" onclick="closeModal('modal-income')"></div>
+        <div class="modal-content bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative z-10">
+            <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            <h2 class="text-xl font-bold mb-4">Terima Income</h2>
+            <form onsubmit="handleSubmitIncome(event)">
+                <div class="space-y-4">
+                    <input type="text" id="inc-name" placeholder="Sumber (Gaji/Bonus)" class="w-full p-3 bg-gray-50 border rounded-xl" required>
+                    
+                    <!-- Nominal Input With Dots -->
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
+                        <input type="text" inputmode="numeric" id="inc-amount" onkeyup="formatCurrency(this)" placeholder="0" class="w-full pl-10 p-3 bg-gray-50 border rounded-xl font-bold text-lg outline-none focus:ring-2 focus:ring-primary" required>
+                    </div>
+                    
+                    <!-- Date Input -->
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Waktu</label>
+                        <div class="relative mt-1">
+                            <i class="ph ph-calendar-blank absolute left-3 top-3 text-gray-400 text-lg"></i>
+                            <input type="datetime-local" id="inc-date" class="w-full pl-10 p-3 bg-gray-50 border rounded-xl outline-none text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Masuk ke Bank Mana?</label>
+                        <div class="relative mt-1">
+                            <select id="inc-bank-target" class="w-full p-3 bg-gray-50 border rounded-xl outline-none appearance-none pr-8 relative z-10 bg-transparent" required></select>
+                            <i class="ph ph-caret-down absolute right-3 top-3.5 text-gray-400 z-0"></i>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-4 rounded-xl font-bold mt-6 btn-press">Simpan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. ALOKASI -->
+    <div id="modal-alokasi" class="fixed inset-0 z-[70] modal-enter transition-modal flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" onclick="closeModal('modal-alokasi')"></div>
+        <div class="modal-content bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative z-10">
+            <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            <h2 class="text-xl font-bold text-primary mb-1">Alokasi Dana</h2>
+            <p class="text-xs text-gray-500 mb-4">Pindahkan dari Bank -> Dompet</p>
+            <form onsubmit="handleSubmitAlokasi(event)">
+                <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 mb-2">
+                    <p class="text-xs text-gray-500 mb-1">Sumber (Bank)</p>
+                    <div class="relative">
+                        <select id="alo-from-id" class="w-full bg-transparent font-bold text-lg outline-none pb-1 appearance-none pr-6 relative z-10" required></select>
+                        <i class="ph ph-caret-down absolute right-0 top-1 text-blue-400 z-0"></i>
+                    </div>
+                </div>
+                
+                <div class="mb-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Waktu</label>
+                    <div class="relative mt-1">
+                        <i class="ph ph-calendar-blank absolute left-3 top-2.5 text-gray-400"></i>
+                        <input type="datetime-local" id="alo-date" class="w-full pl-9 p-2 bg-gray-50 border rounded-lg outline-none text-xs">
+                    </div>
+                </div>
+
+                <div class="flex justify-center -my-3 relative z-10"><div class="bg-white rounded-full p-1 border shadow-sm"><i class="ph ph-arrow-down text-xl text-gray-400"></i></div></div>
+                <div class="bg-green-50 p-3 rounded-xl border border-green-100 mt-2">
+                    <p class="text-xs text-gray-500 mb-1">Tujuan (Dompet)</p>
+                    <div class="relative">
+                        <select id="alo-to-id" class="w-full bg-transparent font-bold text-lg outline-none pb-1 appearance-none pr-6 relative z-10" required></select>
+                        <i class="ph ph-caret-down absolute right-0 top-1 text-green-400 z-0"></i>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="text-xs font-bold text-gray-500 uppercase">Nominal</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
+                        <input type="text" inputmode="numeric" id="alo-amount" onkeyup="formatCurrency(this)" placeholder="0" class="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl font-bold text-xl outline-none focus:ring-2 focus:ring-primary" required>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-dark text-white py-4 rounded-xl font-bold mt-6 btn-press">Pindahkan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. EXPENSE -->
+    <div id="modal-expense" class="fixed inset-0 z-[70] modal-enter transition-modal flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" onclick="closeModal('modal-expense')"></div>
+        <div class="modal-content bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative z-10">
+            <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-6"></div>
+            <h2 class="text-xl font-bold text-red-600 mb-1">Tarik / Bayar</h2>
+            <p class="text-xs text-gray-500 mb-4">Catat pengeluaran dari Dompet</p>
+            <form onsubmit="handleSubmitExpense(event)">
+                <div class="bg-red-50 p-3 rounded-xl border border-red-100 mb-4">
+                    <p class="text-xs text-gray-500">Sumber Dana</p>
+                    <p id="exp-from-name" class="font-bold text-lg">Dompet</p>
+                    <input type="hidden" id="exp-from-id">
+                    <p id="exp-from-bal" class="text-xs text-red-400 font-mono">Rp 0</p>
+                </div>
+                
+                <div class="mb-4">
+                     <label class="text-[10px] font-bold text-gray-400 uppercase ml-1">Waktu</label>
+                    <div class="relative mt-1">
+                        <i class="ph ph-calendar-blank absolute left-3 top-3 text-gray-400 text-lg"></i>
+                        <input type="datetime-local" id="exp-date" class="w-full pl-10 p-3 bg-gray-50 border rounded-xl outline-none text-sm">
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <input type="text" id="exp-title" placeholder="Keperluan?" class="w-full p-3 bg-gray-50 border rounded-xl" required>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
+                        <input type="text" inputmode="numeric" id="exp-amount" onkeyup="formatCurrency(this)" placeholder="0" class="w-full pl-10 p-3 bg-gray-50 border rounded-xl font-bold text-lg outline-none focus:ring-2 focus:ring-red-500" required>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-red-600 text-white py-4 rounded-xl font-bold mt-6 btn-press">Bayar Sekarang</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. EDIT TRANSACTION -->
+    <div id="modal-edit-tx" class="fixed inset-0 z-[80] modal-enter transition-modal flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" onclick="closeModal('modal-edit-tx')"></div>
+        <div class="modal-content bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative z-10">
+            <h2 class="text-xl font-bold mb-4">Edit Transaksi</h2>
+            <form onsubmit="handleEditTransaction(event)">
+                <input type="hidden" id="edit-id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs text-gray-500 uppercase font-bold">Judul</label>
+                        <input type="text" id="edit-title" class="w-full p-3 bg-gray-50 border rounded-xl mt-1">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-500 uppercase font-bold">Jumlah (Saldo menyesuaikan)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
+                            <input type="text" inputmode="numeric" id="edit-amount" onkeyup="formatCurrency(this)" class="w-full pl-10 p-3 bg-gray-50 border rounded-xl font-bold text-lg mt-1 outline-none">
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-4 rounded-xl font-bold mt-6 btn-press">Update Perubahan</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. ADD ENTITY -->
+    <div id="modal-add-entity" class="fixed inset-0 z-[70] modal-enter transition-modal flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" onclick="closeModal('modal-add-entity')"></div>
+        <div class="modal-content bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative z-10">
+            <h2 class="text-xl font-bold mb-4" id="modal-entity-title">Tambah Baru</h2>
+            <form onsubmit="handleAddEntity(event)">
+                <input type="hidden" id="entity-type">
+                <input type="text" id="entity-name" placeholder="Nama" class="w-full p-3 bg-gray-50 border rounded-xl mb-4" required>
+                <div class="relative mb-6">
+                    <span class="absolute left-3 top-3 text-gray-400 font-bold">Rp</span>
+                    <input type="text" inputmode="numeric" id="entity-balance" onkeyup="formatCurrency(this)" placeholder="Saldo Awal" class="w-full pl-10 p-3 bg-gray-50 border rounded-xl outline-none">
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold btn-press">Buat</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. FILTER & DOWNLOAD -->
+    <div id="modal-filter" class="fixed inset-0 z-[80] modal-enter transition-modal flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" onclick="closeModal('modal-filter')"></div>
+        <div class="modal-content bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative z-10">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="ph ph-funnel"></i> Filter & Unduh</h2>
+            <div class="space-y-4">
+                <select id="filter-type" class="w-full p-3 bg-gray-50 border rounded-xl outline-none"><option value="all">Semua Tipe</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option></select>
+                <select id="filter-time" onchange="toggleCustomDate()" class="w-full p-3 bg-gray-50 border rounded-xl outline-none"><option value="all">Semua Waktu</option><option value="this_month">Bulan Ini</option><option value="custom">Kustom Tanggal</option></select>
+                <div id="custom-date-area" class="hidden flex gap-2"><input type="date" id="filter-start" class="w-1/2 p-2 border rounded-lg text-sm"><input type="date" id="filter-end" class="w-1/2 p-2 border rounded-lg text-sm"></div>
+                <button onclick="applyFilter()" class="w-full bg-dark text-white py-3 rounded-xl font-bold mt-2 btn-press">Terapkan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-download-opt" class="fixed inset-0 z-[80] modal-enter transition-modal flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" onclick="closeModal('modal-download-opt')"></div>
+        <div class="modal-content bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative z-10">
+            <h2 class="text-lg font-bold mb-4">Pilih Format</h2>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="downloadCSV()" class="p-4 bg-green-50 border border-green-100 rounded-xl flex flex-col items-center gap-2 btn-press"><i class="ph ph-file-csv text-3xl text-green-600"></i><span class="text-xs font-bold text-green-700">Excel/CSV</span></button>
+                <button onclick="downloadImage()" class="p-4 bg-blue-50 border border-blue-100 rounded-xl flex flex-col items-center gap-2 btn-press"><i class="ph ph-image text-3xl text-blue-600"></i><span class="text-xs font-bold text-blue-700">Gambar Laporan</span></button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 7. DETAIL TRANSACTION MODAL -->
+    <div id="modal-detail-tx" class="fixed inset-0 z-[80] modal-enter transition-modal flex items-end sm:items-center justify-center">
+        <div class="absolute inset-0 bg-black/60" onclick="closeModal('modal-detail-tx')"></div>
+        <div class="modal-content bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl relative z-10">
+            <div class="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4"></div>
+            <h2 class="text-lg font-bold mb-6 text-center">Detail Transaksi</h2>
+            <div id="detail-tx-content" class="space-y-4">
+                <!-- Content injected here -->
+            </div>
+             <button onclick="closeModal('modal-detail-tx')" class="w-full mt-6 py-3 text-gray-400 text-xs font-bold btn-press">Tutup</button>
+        </div>
+    </div>
+
+    <!-- HIDDEN RENDER AREA (FINAL FIX FOR WRAPPING) -->
+    <!-- Width increased to 500px for better layout, padding increased -->
+    <div id="report-render-area" class="fixed top-0 left-[-1500px] w-[500px] bg-white text-dark z-[-1] p-8">
+        <div class="flex items-center
