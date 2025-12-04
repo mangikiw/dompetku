@@ -13,6 +13,18 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- HTML2Canvas -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="manifest" href="/manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(registration) {
+            console.log('Service Worker terdaftar dengan scope: ', registration.scope);
+          }, function(err) {
+            console.log('Pendaftaran Service Worker gagal: ', err);
+          });
+        });
+      }
+    </script>
 
     <script>
         tailwind.config = {
