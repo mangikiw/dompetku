@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dompetku-v1';
+const CACHE_NAME = 'aturuang-v1';
 const urlsToCache = [
   '/', // Pastikan mencakup root URL
   '/index.html',
